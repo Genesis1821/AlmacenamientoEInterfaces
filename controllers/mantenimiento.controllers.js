@@ -1,73 +1,100 @@
-const { mantenimientoFicticio } = require("../batabaseFicticia/mantenimiento")
-const {equipoFicticio} = require("./mantenimientoDataFicticia")
+const ColeccionEquipo = require("../models/equipo")
+ 
 
-const listarMantenimiento = (req, res) =>{
-    return res.status(200).json({
-        exito:true,
-        data: mantenimientoFicticio
-    })
-}
+ class Controladores{
 
+    async listarEquipo(req, res){
+        try {
+            const equiposRegistrados = await ColeccionEquipo.find({})
+            return res.status(200).json({
+                exito:true,
+                data: equiposRegistrados
+            })
+           }
+           catch (error){
+            console.log(error.message)
+           }     
+    }
 
-const listarTipoMantenimiento = (req, res) =>{
-    const tipo = req.params.tipo
-    const data = mantenimientoFicticio.filter((mantenimiento)=>mantenimiento.tipoMantenimiento === tipo )
-    return res.status(200).json({
-        exito:true,
-        data
-    })
-}
+    async detallesEquipoId(req, res){
+        const idEquipo = req.params.id //serial del equipo solicitado
 
+        if(!idEquipo) return res.status(401).json({
+            exito: false,
+            data: null,
+            msg:"id invalido"
+        }) 
 
-const agregarMantenimiento = (req, res) =>{
-    const newMantenimiento = req.body
-    mantenimientoFicticio.push(newMantenimiento)
-    const equipos = equipoFicticio.map((equipo)=> equipo.serial === newMantenimiento.id_equipo ? {...equipo, ultima_fecha_mantenimiento: newMantenimiento.fecha_final_mantenimiento} : equipo)
-    return res.status(200).json({
-        exito:true,
-        mantenimientoFicticio,
-        equipos
-        
-    })
-}
-
-const borrarMantenimiento = (req, res) =>{
-    const idMantenimiento = req.params.id //serial del equipo solicitado
-    if(!idMantenimiento) return res.status(401).json({
-        exito: false,
-        data: null,
-        msg:"id invalido"
-    }) 
-    const data = mantenimientoFicticio.filter((manenimiento)=> manenimiento.id_mantenimiento !== idMantenimiento)
-    return res.status(200).json({
-        exito:true,
-        data 
-    })
-}
+        const detallesEquipo =  await ColeccionEquipo.findById({_id : idEquipo})
+        if (detallesEquipo){
+            res.status(200).json({
+                exito:true,
+                data: detallesEquipo
+        })
+        }
+        else{
+            res.status(400).json({
+                exito: false,
+                data: null,
+                msg:"equipo no encontrado"
+        })
+        }
+    }
 
 
-const actualizarMantenimiento = (req, res) =>{
-    const idMantenimiento = req.params.id //serial del equipo solicitad
-    const newData = req.body
-
-    if(!idMantenimiento) return res.status(401).json({
-        exito: false,
-        data: null,
-        msg:"id invalido"
-    }) 
-
-    const data = mantenimientoFicticio.map((manenimiento)=> manenimiento.id_mantenimiento === idMantenimiento ? newData : manenimiento)
-    return res.status(200).json({
-        exito:true,
-        data
-    })
-}
+    async agregarEquipo(req, res){
+        try {
+            const equipoNuevo = req.body
+            const nuevoRegistro = new ColeccionEquipo(equipoNuevo)
+            await nuevoRegistro.save()
+            return res.status(200).json({
+                exito:true,
+                nuevoRegistro
+            })
+       } catch (error) {
+            console.log(error.message)
+       }
+    }
 
 
-module.exports = {
-    listarMantenimiento,
-    listarTipoMantenimiento,
-    agregarMantenimiento,
-    borrarMantenimiento,
-    actualizarMantenimiento
-}
+    async borrarEquipo(req,res){
+        const idEquipo = req.params.id //serial del equipo solicitado
+        if(!idEquipo) return res.status(401).json({
+            exito: false,
+            data: null,
+            msg:"id invalido"
+        }) 
+        await ColeccionEquipo.findByIdAndDelete({_id : idEquipo})
+        return res.status(200).json({
+            exito: true,
+            msg: 'El equipo fue eliminado'
+        })
+    }
+
+
+    async actualizarEquipo(req,res){
+        const idEquipo = req.params.id //serial del equipo solicitad
+        const newData = req.body
+    
+        if(!idEquipo) return res.status(401).json({
+            exito: false,
+            data: null,
+            msg:"id invalido"
+        }) 
+    
+        await ColeccionEquipo.findByIdAndUpdate({_id : idEquipo}, newData)
+        return res.status(200).json({
+            exito:true,
+            msg: 'El registro se ha actualizado'
+        })
+    }
+
+ }
+
+
+
+const equipoControladores = new Controladores()
+
+
+
+module.exports = {equipoControladores}
